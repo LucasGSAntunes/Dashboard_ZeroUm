@@ -13,7 +13,7 @@ token = ''
 params = {
     'time_increment': 1,
     'level': 'adset',
-    'fields': 'campaign_name,adset_name,spend,cpc,clicks,impressions,reach,actions',
+    'fields': 'campaign_name,adset_name,spend,cpc,ctr,clicks,impressions,reach,actions,frequency',
     'access_token': token
 }
 
@@ -75,6 +75,37 @@ def get_total_investment(data):
     data_spend = data['spend'].astype(float)
     return data_spend.sum()
 
+def get_total_msg(data):
+    data_msg = data['messaging_conversation_started_7d'].astype(int)
+    return data_msg.sum()
+
+def get_cost_per_msg(data):
+    return get_total_investment(data) / get_total_msg(data)
+
+def get_reach(data):
+    return data['reach'].astype(int).sum()
+
+def get_impressions(data):
+    return data['impressions'].astype(int).sum()
+
+def get_frequency(data):
+    return get_impressions(data) / get_reach(data)
+
+def get_ctr(data):
+    return get_clicks_link(data) / get_impressions(data) * 100
+
+def get_clicks_link(data):
+    return data['link_click'].astype(int).sum()
+
+def get_cost_click(data):
+    return get_total_investment(data) / get_clicks_link(data)
+
+def get_engagement(data):
+    return data['page_engagement'].astype(int).sum()
+
+def get_cost_engagement(data):
+    return get_total_investment(data) / get_engagement(data)
+
 app.layout = html.Div(children=[
     html.Div(children=[
         html.Img(src=app.get_asset_url('logo.png'), 
@@ -96,140 +127,163 @@ app.layout = html.Div(children=[
               'margin-bottom': '0px',
               }),
 
-    html.H2(children='Informações de Autenticação', 
-            style={'text-align': 'center', 
-                   'color': 'white',
-                   'background-color': '#143159',
-                   'line-height': '100px',
-                   'margin-top': '0px',
-                   'align-items': 'center'}),
     
-    html.Div(children=[
+    html.Div(id='Autentication-fields',children=[
+        html.H2(children='Informações de Autenticação', 
+                style={'text-align': 'center', 
+                    'color': 'white',
+                    'background-color': '#143159',
+                    'line-height': '100px',
+                    'margin-top': '0px',
+                    'align-items': 'center'}),
         html.Div(children=[
-            html.H3(children='Insira o Token de autenticação do Facebook', 
-                    style={'margin-bottom': '10px', 
-                           'color': 'white'}),
-            dcc.Input(
-                id='token-input', 
-                type='text', 
-                placeholder='Token',
-                style={
-                    'background-color': '#f0f0f0', 
-                    'color': 'black', 
-                    'border': '2px solid #ddd', 
-                    'border-radius': '5px',  
-                    'padding': '10px',
-                    'cursor': 'pointer',}),
-        ]),
-        html.Div(children=[
-            html.H3(children='Selecione o formato de dias desejado', 
-                    style={'margin-bottom': '10px', 
-                           'color': 'white'}),
-            dcc.RadioItems(
-                id='interval-type',
-                options=[
-                    {'label': 'Intervalo de Dias', 'value': 'range'},
-                    {'label': 'Dia Único', 'value': 'single_day'}
-                ],
-                value='range',
-                labelStyle={'display': 'block', 'margin-bottom': '5px'},
-                style={'color': 'white'}
-            ),
-        ]),
-    ], style={'display': 'flex', 'justify-content': 'space-between', 'margin-bottom': '20px', 'padding': '0 20px'}),
-    
-    html.Div(children=[
-        html.Div(children=[
-            html.H3(children='Insira o código de autenticação do cliente', 
-                    style={'margin-bottom': '10px', 
-                           'color': 'white'}),
-            dcc.Input(
-                id='client-input', 
-                type='text', 
-                placeholder='Cliente', 
-                style={
-                    'background-color': '#f0f0f0', 
-                    'color': 'black', 
-                    'border': '2px solid #ddd', 
-                    'border-radius': '5px',  
-                    'padding': '10px',
-                    'cursor': 'pointer',}),
-        ]),
-        html.Div(children=[
-            html.H3(children='Selecione a data desejada', style={'margin-bottom': '10px', 'color': 'white'}),
-            dcc.DatePickerRange(
-                id='date-range',
-                start_date='2023-03-01',
-                end_date='2023-03-31',
-                display_format='DD-MM-YYYY',
-                style={
-                    'background-color': '#f0f0f0', 
-                    'color': 'black', 
-                    'border': '2px solid #ddd', 
-                    'border-radius': '5px',  
-                    'padding': '10px',
-                    'cursor': 'pointer',
-                    'display': 'none'
-                }
-            ),
-            dcc.DatePickerSingle(
-                id='date-picker',
-                date='2023-01-01',
-                display_format='DD-MM-YYYY',
-                style={
-                    'background-color': '#f0f0f0', 
-                    'color': 'black', 
-                    'border': '2px solid #ddd', 
-                    'border-radius': '5px',  
-                    'padding': '10px',
-                    'cursor': 'pointer',
-                    'display': 'none'
-                }
-            ),
-        ]),
-    ], style={'display': 'flex', 'justify-content': 'space-between', 'margin-bottom': '20px', 'padding': '0 20px'}),
+            html.Div(children=[
+                html.Div(children=[
+                    html.H3(children='Insira o Token de autenticação do Facebook', 
+                            style={'margin-bottom': '10px', 
+                                'color': 'white'}),
+                    dcc.Input(
+                        id='token-input', 
+                        type='text', 
+                        placeholder='Token',
+                        style={
+                            'background-color': '#f0f0f0', 
+                            'color': 'black', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',  
+                            'padding': '10px',
+                            'cursor': 'pointer',}),
+                ]),
+                html.Div(children=[
+                html.H3(children='Insira o código de autenticação do cliente', 
+                        style={'margin-bottom': '10px', 
+                            'color': 'white'}),
+                dcc.Input(
+                        id='client-input', 
+                        type='text', 
+                        placeholder='Cliente', 
+                        style={
+                            'background-color': '#f0f0f0', 
+                            'color': 'black', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',  
+                            'padding': '10px',
+                            'cursor': 'pointer',}),
+                ]),
+            ]),
+            html.Div(children=[
+                html.Div(children=[
+                    html.H3(children='Selecione o formato de dias desejado', 
+                            style={'margin-bottom': '10px', 
+                                'color': 'white'}),
+                    dcc.RadioItems(
+                        id='interval-type',
+                        options=[
+                            {'label': 'Intervalo de Dias', 'value': 'range'},
+                            {'label': 'Dia Único', 'value': 'single_day'}
+                        ],
+                        value='range',
+                        labelStyle={'display': 'block', 'margin-bottom': '5px'},
+                        style={'color': 'white'}
+                    ),
+                ]),
+                html.Div(children=[
+                html.H3(children='Selecione a data desejada', style={'margin-bottom': '10px', 'color': 'white'}),
+                    dcc.DatePickerRange(
+                        id='date-range',
+                        start_date='2023-03-01',
+                        end_date='2023-03-31',
+                        display_format='DD-MM-YYYY',
+                        style={
+                            'background-color': '#f0f0f0', 
+                            'color': 'black', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',  
+                            'padding': '10px',
+                            'cursor': 'pointer',
+                            'display': 'none'
+                        }
+                    ),
+                    dcc.DatePickerSingle(
+                        id='date-picker',
+                        date='2023-01-01',
+                        display_format='DD-MM-YYYY',
+                        style={
+                            'background-color': '#f0f0f0', 
+                            'color': 'black', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',  
+                            'padding': '10px',
+                            'cursor': 'pointer',
+                            'display': 'none'
+                        }
+                    ),
+                ]),
+            ]),
+        ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+        
+        html.Button('Enviar', id='submit-button', n_clicks=0, style={
+        'background-color': '#4CAF50',
+        'color': 'white',
+        'padding': '10px 20px',
+        'border': 'none',
+        'border-radius': '4px',
+        'margin': 'auto',
+        'display': 'block',
+        'cursor': 'pointer'
+        }),
+        html.Div(id='feedback-msg', style={'margin-top': 10}),
+    ], style={'display': 'none', 'margin-bottom': '0px'}),
 
-    html.Button('Enviar', id='submit-button', n_clicks=0, style={
-    'background-color': '#4CAF50',
-    'color': 'white',
-    'padding': '10px 20px',
-    'border': 'none',
-    'border-radius': '4px',
-    'margin': 'auto',
-    'display': 'block',
-    'cursor': 'pointer'
-    }),
-
-    html.Div(id='feedback-msg', style={'margin-top': 10}),
 
     html.H2(children='Dashboard de Anúncios MetaAds', 
             style={'text-align': 'center', 
                    'color': 'white',
                    'background-color': '#143159',
-                   'line-height': '100px',}),
+                   'line-height': '100px',
+                   'margin-top': '0px',}),
     
+    html.Button('Modo apresentação', id='presentation-button', n_clicks=0, style={
+        'background-color': '#4CAF50',
+        'color': 'white',
+        'padding': '10px 20px',
+        'border': 'none',
+        'border-radius': '4px',
+        'margin': 'auto',
+        'display': 'block',
+        'cursor': 'pointer'
+        }),
+
     html.Div(children=[
         html.Div(children=[
             html.Div(children=[
                 html.H3(children='Período', style={'margin-bottom': '10px', 'color': 'white'}),
             ]),
             html.Div(children=[
-                html.H3(id='date-begin-field', 
-                        style={
-                            'margin-bottom': '10px', 
-                            'color': 'white', 
-                            'border': '2px solid #ddd', 
-                            'border-radius': '5px',
-                            'background-color': '#040911',
-                            }),
-                html.H3(id='date-end-field', 
-                        style={
-                            'margin-bottom': '10px', 
-                            'color': 'white', 
-                            'border': '2px solid #ddd', 
-                            'border-radius': '5px',
-                            'background-color': '#040911',
-                            }),
+                html.Div(children=[
+                    html.H6(children='Data Inicial', style={'margin-bottom': '10px', 'color': 'white'}),
+                    html.H6(id='date-begin-field', 
+                            style={
+                                'margin-bottom': '10px', 
+                                'color': 'white', 
+                                'border': '2px solid #ddd', 
+                                'border-radius': '5px',
+                                'background-color': '#040911',
+                                'text-align': 'center'
+                                }),
+                ]),
+                html.Div(children=[
+                    html.H6(children='Data Final', style={'margin-bottom': '10px', 'color': 'white'}),
+                    html.H6(id='date-end-field', 
+                            style={
+                                'margin-bottom': '10px', 
+                                'color': 'white', 
+                                'border': '2px solid #ddd', 
+                                'border-radius': '5px',
+                                'background-color': '#040911',
+                                'text-align': 'center'
+                                }),
+                ]),
             ]),
         ]),
         html.Div(children=[
@@ -241,14 +295,171 @@ app.layout = html.Div(children=[
                         'border': '2px solid #ddd', 
                         'border-radius': '5px',
                         'background-color': '#040911',
+                        'text-align': 'center'
+                        }),
+        ]),
+        html.Div(children=[
+            html.H3(children='Conversas Iniciadas', style={'margin-bottom': '10px', 'color': 'white'}),
+            html.H3(id='total-msg-field', 
+                    style={
+                        'margin-bottom': '10px', 
+                        'color': 'white', 
+                        'border': '2px solid #ddd', 
+                        'border-radius': '5px',
+                        'background-color': '#040911',
+                        'text-align': 'center'
+                        }),
+        ]),
+        html.Div(children=[
+            html.H3(children='Custo por Conversas Iniciadas', style={'margin-bottom': '10px', 'color': 'white'}),
+            html.H3(id='cost-per-msg-field', 
+                    style={
+                        'margin-bottom': '10px', 
+                        'color': 'white', 
+                        'border': '2px solid #ddd', 
+                        'border-radius': '5px',
+                        'background-color': '#040911',
+                        'text-align': 'center'
                         }),
         ]),
     ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+
+    html.Div(children=[
+        html.Div(children=[
+            html.Div(children=[
+                html.H3(children='Alcance', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(id='reach-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+            html.Div(children=[
+                html.H3(children='Impressões', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(id='impressions-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+        ]),
+        html.Div(children=[
+            html.Div(children=[
+                html.H3(children='Frequência', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(id='frequency-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+            html.Div(children=[
+                html.H3(children='CTR', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(id='CTR-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+        ]),
+        html.Div(children=[
+            html.Div(children=[
+                html.H3(children='Cliques no Link', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(id='clicks-link-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+            html.Div(children=[
+                html.H3(children='Custo por Clique', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(id='cost-click-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+        ]),
+        html.Div(children=[
+            html.Div(children=[
+                html.H3(children='Engajamento', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(id='engagement-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+            html.Div(children=[
+                html.H3(children='Custo por Engajamento', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(id='cost-engagement-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+        ]),
+    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+
     
     dash_table.DataTable(data=[], page_size=30, id='table', style_table={'overflowX': 'auto', 'margin': 'auto', 'width': '80%'}),
 
 ], style={'background-color': '#081425'})
 
+@app.callback(
+    [Output('Autentication-fields', 'style'),
+     Output('presentation-button', 'style')],
+    [Input('presentation-button', 'n_clicks')]
+)
+def show_auth_fields(n_clicks):
+    if n_clicks%2 == 0:
+        return {'display': 'block'}, {'background-color': '#4CAF50', 
+                                      'color': 'white', 
+                                      'padding': '10px 20px', 
+                                      'border': 'none', 
+                                      'border-radius': '4px', 
+                                      'margin': 'auto', 
+                                      'display': 'block', 
+                                      'cursor': 'pointer'}
+    
+    return {'display': 'none'}, {'background-color': '#081425',
+                                 'color': 'white',
+                                 'padding': '10px 20px',
+                                 'border': '2px solid #000000',
+                                 'border-radius': '4px',
+                                 'margin': 'auto',
+                                 'display': 'block',
+                                 'cursor': 'pointer'}
 
 @app.callback(
     [Output('date-range', 'style'),
@@ -266,7 +477,19 @@ def update_date_picker_style(interval_type):
 @app.callback(
     [Output('table', 'data'),
      Output('feedback-msg', 'children'),
-     Output('spend-field', 'children')],
+     Output('spend-field', 'children'),
+     Output('date-begin-field', 'children'),
+     Output('date-end-field', 'children'),
+     Output('total-msg-field', 'children'),
+     Output('cost-per-msg-field', 'children'),
+     Output('reach-field', 'children'),
+     Output('impressions-field', 'children'),
+     Output('frequency-field', 'children'),
+     Output('CTR-field', 'children'),
+     Output('clicks-link-field', 'children'),
+     Output('cost-click-field', 'children'),
+     Output('engagement-field', 'children'),
+     Output('cost-engagement-field', 'children')],
     [Input('submit-button', 'n_clicks')],
     [State('token-input', 'value'),
      State('client-input', 'value'),
@@ -279,30 +502,52 @@ def update_graph(n_clicks, token_value, cliente_value, interval_type, start_date
     if n_clicks > 0:
         
         if token_value is None:
-            return {
-                [], 
-                html.Div('Insira o Token!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), 
-                ''
-                }
+            return [], html.Div('Insira o Token!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', ''
+                
         if cliente_value is None:
-            return {
-                [], 
-                html.Div('Insira o Código do cliente desejado!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}),
-                ''
-                }
+            return [], html.Div('Insira o Código do cliente desejado!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', ''
+                
 
         updated_json_content = get_updated_data(token_value, cliente_value, interval_type, start_date, end_date, single_date)
 
         if process_error(updated_json_content) or process_empty_data(updated_json_content):
-            return [], update_feedback_message(updated_json_content)
+            return [], update_feedback_message(updated_json_content), '', '', '', '', '', '', '', '', '', '', '', '', ''
         
         updated_df = process_data(updated_json_content)
         spend = get_total_investment(updated_df)
         spend = f'R$ {spend:.2f}'.replace('.', ',')
 
-        return updated_df.to_dict('records'), update_feedback_message(updated_json_content), spend
+        date_begin = start_date if interval_type == 'range' else single_date
+        date_end = end_date if interval_type == 'range' else single_date
 
-    return [], html.H3('STATUS: Aguardando Envio...', style={'text-align': 'center', 'color': 'white'}), ''
+        total_msg = get_total_msg(updated_df)
+
+        cost_per_msg = get_cost_per_msg(updated_df)
+        cost_per_msg = f'R$ {cost_per_msg:.2f}'.replace('.', ',')
+
+        reach = get_reach(updated_df)
+
+        impressions = get_impressions(updated_df)
+
+        frequency = get_frequency(updated_df)
+        frequency = f'{frequency:.2f}'.replace('.', ',')
+
+        ctr = get_ctr(updated_df)
+        ctr = f'{ctr:.2f}%'.replace('.', ',')
+
+        clicks_link = get_clicks_link(updated_df)
+
+        cost_click = get_cost_click(updated_df)
+        cost_click = f'R$ {cost_click:.2f}'.replace('.', ',')
+
+        engagement = get_engagement(updated_df)
+
+        cost_engagement = get_cost_engagement(updated_df)
+        cost_engagement = f'R$ {cost_engagement:.2f}'.replace('.', ',')
+
+        return updated_df.to_dict('records'), update_feedback_message(updated_json_content), spend, date_begin, date_end, total_msg, cost_per_msg, reach, impressions, frequency, ctr, clicks_link, cost_click, engagement, cost_engagement
+
+    return [], html.H3('STATUS: Aguardando Envio...', style={'text-align': 'center', 'color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', ''
 
 
 if __name__ == '__main__':
