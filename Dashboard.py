@@ -5,6 +5,7 @@ from dash import Dash, html, dcc, dash_table, Input, Output, State
 import requests
 
 app = Dash(__name__)
+server = app.server
 
 url_default = 'https://graph.facebook.com/v19.0/'
 cliente = ''
