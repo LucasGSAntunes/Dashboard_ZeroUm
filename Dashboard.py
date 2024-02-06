@@ -461,35 +461,36 @@ app.layout = html.Div(children=[
             dcc.Graph(id='msg-graph', figure={}),
         ], style={'display': 'none'}),
     ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
-    
-    dash_table.DataTable(data=[], page_size=30, id='table', style_table={'overflowX': 'auto', 'margin': 'auto', 'width': '80%'}),
-
+    html.Div(id='table-field', children=[
+        dash_table.DataTable(data=[], page_size=30, id='table', style_table={'overflowX': 'auto', 'margin': 'auto', 'width': '80%'}),
+    ], style={'display': 'none'}),
 ], style={'background-color': '#081425'})
 
 @app.callback(
     [Output('Autentication-fields', 'style'),
+     Output('table-field', 'style'),
      Output('presentation-button', 'style')],
     [Input('presentation-button', 'n_clicks')]
 )
 def show_auth_fields(n_clicks):
     if n_clicks%2 == 0:
-        return {'display': 'block'}, {'background-color': '#4CAF50', 
-                                      'color': 'white', 
-                                      'padding': '10px 20px', 
-                                      'border': 'none', 
-                                      'border-radius': '4px', 
-                                      'margin': 'auto', 
-                                      'display': 'block', 
-                                      'cursor': 'pointer'}
+        return {'display': 'block'}, {'display': 'block'}, {'background-color': '#4CAF50', 
+                                                            'color': 'white', 
+                                                            'padding': '10px 20px', 
+                                                            'border': 'none', 
+                                                            'border-radius': '4px', 
+                                                            'margin': 'auto', 
+                                                            'display': 'block', 
+                                                            'cursor': 'pointer'}
     
-    return {'display': 'none'}, {'background-color': '#081425',
-                                 'color': 'white',
-                                 'padding': '10px 20px',
-                                 'border': '2px solid #000000',
-                                 'border-radius': '4px',
-                                 'margin': 'auto',
-                                 'display': 'block',
-                                 'cursor': 'pointer'}
+    return {'display': 'none'}, {'display': 'none'}, {'background-color': '#081425',
+                                                        'color': 'white',
+                                                        'padding': '10px 20px',
+                                                        'border': '2px solid #000000',
+                                                        'border-radius': '4px',
+                                                        'margin': 'auto',
+                                                        'display': 'block',
+                                                        'cursor': 'pointer'}
 
 @app.callback(
     [Output('date-range', 'style'),
