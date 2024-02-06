@@ -11,7 +11,6 @@ cliente = ''
 insights = '/insights?'
 token = ''
 params = {
-    'time_increment': 1,
     'level': 'adset',
     'fields': 'campaign_name,adset_name,spend,cpc,ctr,clicks,impressions,reach,actions,frequency',
     'access_token': token
@@ -82,14 +81,11 @@ def get_total_msg(data):
 def get_cost_per_msg(data):
     return get_total_investment(data) / get_total_msg(data)
 
-def get_reach(data):
-    return data['reach'].astype(int).sum()
-
 def get_impressions(data):
     return data['impressions'].astype(int).sum()
 
-def get_frequency(data):
-    return get_impressions(data) / get_reach(data)
+def get_frequency(data, reach_input):
+    return get_impressions(data) / int(reach_input)
 
 def get_ctr(data):
     return get_clicks_link(data) / get_impressions(data) * 100
@@ -162,6 +158,22 @@ app.layout = html.Div(children=[
                         id='client-input', 
                         type='text', 
                         placeholder='Cliente', 
+                        style={
+                            'background-color': '#f0f0f0', 
+                            'color': 'black', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',  
+                            'padding': '10px',
+                            'cursor': 'pointer',}),
+                ]),
+                html.Div(children=[
+                html.H3(children='Insira o Alcance total', 
+                        style={'margin-bottom': '10px', 
+                            'color': 'white'}),
+                dcc.Input(
+                        id='reach-input',
+                        type='text', 
+                        placeholder='Alcance', 
                         style={
                             'background-color': '#f0f0f0', 
                             'color': 'black', 
@@ -431,6 +443,23 @@ app.layout = html.Div(children=[
         ]),
     ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
 
+    html.Div(children=[
+        html.Div(id='funnel-graph-field', children=[
+            dcc.Graph(id='funnel-graph', figure={}),
+        ], style={'display': 'none'}),
+    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+
+    html.Div(children=[
+        html.Div(id='spend-graph-field',children=[
+            html.H3(children='Gráfico de valor usado por campanha', style={'margin-bottom': '10px', 'color': 'white'}),
+            dcc.Graph(id='spend-graph', figure={}),
+        ], style={'display': 'none'}),
+
+        html.Div(id= 'msg-graph-field',children=[
+            html.H3(children='Gráfico de conversas iniciadas por campanha', style={'margin-bottom': '10px', 'color': 'white'}),
+            dcc.Graph(id='msg-graph', figure={}),
+        ], style={'display': 'none'}),
+    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
     
     dash_table.DataTable(data=[], page_size=30, id='table', style_table={'overflowX': 'auto', 'margin': 'auto', 'width': '80%'}),
 
@@ -489,29 +518,38 @@ def update_date_picker_style(interval_type):
      Output('clicks-link-field', 'children'),
      Output('cost-click-field', 'children'),
      Output('engagement-field', 'children'),
-     Output('cost-engagement-field', 'children')],
+     Output('cost-engagement-field', 'children'),
+     Output('spend-graph-field', 'style'),
+     Output('spend-graph', 'figure'),
+     Output('msg-graph-field', 'style'),
+     Output('msg-graph', 'figure'),
+     Output('funnel-graph-field', 'style'),
+     Output('funnel-graph', 'figure')],
     [Input('submit-button', 'n_clicks')],
     [State('token-input', 'value'),
      State('client-input', 'value'),
+     State('reach-input', 'value'),
      State('interval-type', 'value'),
      State('date-range', 'start_date'),
      State('date-range', 'end_date'),
      State('date-picker', 'date')]
 )
-def update_graph(n_clicks, token_value, cliente_value, interval_type, start_date, end_date, single_date):
+def update_graph(n_clicks, token_value, cliente_value, reach_input, interval_type, start_date, end_date, single_date):
     if n_clicks > 0:
         
         if token_value is None:
-            return [], html.Div('Insira o Token!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', ''
+            return [], html.Div('Insira o Token!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
                 
         if cliente_value is None:
-            return [], html.Div('Insira o Código do cliente desejado!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', ''
-                
+            return [], html.Div('Insira o Código do cliente desejado!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
+        
+        if reach_input is None:
+            return [], html.Div('Insira o Alcance total!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
 
         updated_json_content = get_updated_data(token_value, cliente_value, interval_type, start_date, end_date, single_date)
 
         if process_error(updated_json_content) or process_empty_data(updated_json_content):
-            return [], update_feedback_message(updated_json_content), '', '', '', '', '', '', '', '', '', '', '', '', ''
+            return [], update_feedback_message(updated_json_content), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
         
         updated_df = process_data(updated_json_content)
         spend = get_total_investment(updated_df)
@@ -525,11 +563,11 @@ def update_graph(n_clicks, token_value, cliente_value, interval_type, start_date
         cost_per_msg = get_cost_per_msg(updated_df)
         cost_per_msg = f'R$ {cost_per_msg:.2f}'.replace('.', ',')
 
-        reach = get_reach(updated_df)
+        reach = reach_input
 
         impressions = get_impressions(updated_df)
 
-        frequency = get_frequency(updated_df)
+        frequency = get_frequency(updated_df, reach_input)
         frequency = f'{frequency:.2f}'.replace('.', ',')
 
         ctr = get_ctr(updated_df)
@@ -545,9 +583,61 @@ def update_graph(n_clicks, token_value, cliente_value, interval_type, start_date
         cost_engagement = get_cost_engagement(updated_df)
         cost_engagement = f'R$ {cost_engagement:.2f}'.replace('.', ',')
 
-        return updated_df.to_dict('records'), update_feedback_message(updated_json_content), spend, date_begin, date_end, total_msg, cost_per_msg, reach, impressions, frequency, ctr, clicks_link, cost_click, engagement, cost_engagement
+        updated_df = updated_df.astype({'spend': float, 'messaging_conversation_started_7d': int})
 
-    return [], html.H3('STATUS: Aguardando Envio...', style={'text-align': 'center', 'color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', ''
+        spend_graph = px.pie(updated_df, 
+                             values='spend', 
+                             names='adset_name',
+                             labels={'spend': 'Valor Gasto (R$)', 'adset_name': 'Conjunto de Anúncios'}
+                             )
+        
+        spend_graph.update_traces(textinfo='percent+value')
+        spend_graph.update_layout(paper_bgcolor='#143159', 
+                                  font_color='white', 
+                                  height=600, 
+                                  width=600, 
+                                  legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+                                  )
+
+        msg_graph = px.pie(updated_df, 
+                           values='messaging_conversation_started_7d', 
+                           names='adset_name', 
+                           labels={'messaging_conversation_started_7d': 'Conversas Iniciadas', 'adset_name': 'Conjunto de Anúncios'}
+                           )
+        
+        msg_graph.update_traces(textinfo='percent+value')
+        msg_graph.update_layout(paper_bgcolor='#143159', 
+                                font_color='white', 
+                                height=600, 
+                                width=600, 
+                                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+                                )
+        
+        spend_funnel = get_total_investment(updated_df)
+        cost_msg_funnel = round(spend_funnel/total_msg, 2)
+
+        funnel_data = dict(
+            value = [spend_funnel, total_msg, cost_msg_funnel],
+            labels = ['Investimento (R$)', 'Conversas Iniciadas', 'Custo por Conversa Iniciada (R$)']
+        )
+
+        funnel_graph = px.funnel(funnel_data,
+                                      y='labels',
+                                      x='value',
+                                      )
+        funnel_graph.update_traces(textinfo='value+label', textfont=dict(color='white'))
+        funnel_graph.update_layout(paper_bgcolor='#143159',
+                                   plot_bgcolor='#143159',
+                                   font_color='white',
+                                   height=600, 
+                                   width=1200,
+                                   showlegend=False,
+                                   yaxis=dict(showgrid=False, visible=False),
+                                   )
+
+        return updated_df.to_dict('records'), update_feedback_message(updated_json_content), spend, date_begin, date_end, total_msg, cost_per_msg, reach, impressions, frequency, ctr, clicks_link, cost_click, engagement, cost_engagement, {'display': 'block'}, spend_graph, {'display': 'block'}, msg_graph, {'display': 'flex'}, funnel_graph
+
+    return [], html.H3('STATUS: Aguardando Envio...', style={'text-align': 'center', 'color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
 
 
 if __name__ == '__main__':
