@@ -452,7 +452,7 @@ app.layout = html.Div(children=[
         html.Div(id='funnel-graph-field', children=[
             dcc.Graph(id='funnel-graph', figure={}),
         ], style={'display': 'none'}),
-    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px', 'z-index': '50'}),
 
     html.Div(children=[
         html.Div(id='spend-graph-field',children=[
@@ -464,7 +464,7 @@ app.layout = html.Div(children=[
             html.H3(children='Gráfico de conversas iniciadas por campanha', style={'margin-bottom': '10px', 'color': 'white'}),
             dcc.Graph(id='msg-graph', figure={}),
         ], style={'display': 'none'}),
-    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px', 'z-index': '50'}),
     
     dash_table.DataTable(data=[], page_size=30, id='table', style_table={'overflowX': 'auto', 'margin': 'auto', 'width': '80%'}),
 
