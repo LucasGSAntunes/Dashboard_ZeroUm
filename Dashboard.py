@@ -122,6 +122,10 @@ app.layout = html.Div(children=[
               'align-items': 'center', 
               'background-color': '#040911',
               'margin-bottom': '0px',
+              'position': 'fixed',
+                'top': '0',
+                'width': '100%',
+                
               }),
 
     
