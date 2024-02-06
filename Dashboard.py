@@ -122,6 +122,10 @@ app.layout = html.Div(children=[
               'align-items': 'center', 
               'background-color': '#040911',
               'margin-bottom': '0px',
+              'position': 'fixed',
+              'top': '0',
+              'width': '100%',
+              'z-index': '1000'
               }),
 
     
@@ -448,7 +452,7 @@ app.layout = html.Div(children=[
         html.Div(id='funnel-graph-field', children=[
             dcc.Graph(id='funnel-graph', figure={}),
         ], style={'display': 'none'}),
-    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px', 'z-index': '50'}),
 
     html.Div(children=[
         html.Div(id='spend-graph-field',children=[
