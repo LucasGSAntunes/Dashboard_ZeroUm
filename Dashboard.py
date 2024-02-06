@@ -31,6 +31,19 @@ def get_updated_data(token_value, cliente_value, interval_type, start_date, end_
 
     return updated_json_content
 
+def get_client_list(token_value):
+    updated_url = url_default + 'me/adaccounts'
+    params_client = {
+        'access_token': token_value,
+        'fields': 'name, id',
+        'order_by': 'name',
+        'limit': 100
+    }
+    updated_response = requests.get(updated_url, params=params_client)
+    updated_json_content = updated_response.json()
+
+    return updated_json_content
+
 def process_error(updated_json_content):
     return updated_json_content.get('error')
 
@@ -135,47 +148,63 @@ app.layout = html.Div(children=[
                     'color': 'white',
                     'background-color': '#143159',
                     'line-height': '100px',
-                    'margin-top': '0px',
-                    'align-items': 'center'}),
+                    'margin-top': '100px',
+                    'align-items': 'center',
+                    'text-font': 'bold'}),
         html.Div(children=[
             html.Div(children=[
                 html.Div(children=[
-                    html.H3(children='Insira o Token de autenticação do Facebook', 
-                            style={'margin-bottom': '10px', 
-                                'color': 'white'}),
+                    html.H3(children='Insira o Token de autenticação do Facebook', style={'margin-bottom': '10px', 'color': 'white', 'text-font': 'bold'}),
+                    html.Div(children=[
+                        dcc.Input(
+                            id='token-input', 
+                            type='text', 
+                            placeholder='Token',
+                            style={
+                                'background-color': '#f0f0f0', 
+                                'color': 'black', 
+                                'border': '2px solid #ddd', 
+                                'border-radius': '5px',  
+                                'padding': '10px',
+                                'cursor': 'pointer',}),
+                        html.Button('Validar Token', id='token-button', n_clicks=0, style={
+                                                                                    'background-color': '#4CAF50',
+                                                                                    'color': 'white',
+                                                                                    'padding': '10px 20px',
+                                                                                    'border': 'none',
+                                                                                    'border-radius': '4px',
+                                                                                    'margin': 'auto',
+                                                                                    'display': 'block',
+                                                                                    'cursor': 'pointer'
+                                                                                    }),
+                    ], style={'display': 'flex', 'justify-content': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
+
+                    html.Div(id='token-feedback-msg', style={'margin-top': 10}),
+                ]),
+
+                html.Div(id='client-field' ,children=[
+                    html.H3(children='Selecione o cliente desejado', style={'margin-bottom': '10px', 'color': 'white', 'text-font': 'bold'}),
+                    html.Div(children=[
+                        dcc.Dropdown(
+                            id='client-dropdown',
+                            options=[{'label': '', 'value': ''}],
+                            placeholder='Selecione o cliente',
+                            style={
+                                'background-color': '#f0f0f0', 
+                                'color': 'black', 
+                                'border': '2px solid #ddd', 
+                                'border-radius': '5px',  
+                                'padding': '10px',
+                                'cursor': 'pointer',
+                                'width': '330px',
+                                'text-align': 'center'
+                            }
+                        ),
+                    ], style={'display': 'flex', 'justify-content': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
+                ], style={'display': 'none'}),
+                html.Div(children=[
+                    html.H3('Insira o Alcance total', style={'color': 'white', 'text-align': 'center', 'text-font': 'bold', 'margin-bottom': '10px'}),
                     dcc.Input(
-                        id='token-input', 
-                        type='text', 
-                        placeholder='Token',
-                        style={
-                            'background-color': '#f0f0f0', 
-                            'color': 'black', 
-                            'border': '2px solid #ddd', 
-                            'border-radius': '5px',  
-                            'padding': '10px',
-                            'cursor': 'pointer',}),
-                ]),
-                html.Div(children=[
-                html.H3(children='Insira o código de autenticação do cliente', 
-                        style={'margin-bottom': '10px', 
-                            'color': 'white'}),
-                dcc.Input(
-                        id='client-input', 
-                        type='text', 
-                        placeholder='Cliente', 
-                        style={
-                            'background-color': '#f0f0f0', 
-                            'color': 'black', 
-                            'border': '2px solid #ddd', 
-                            'border-radius': '5px',  
-                            'padding': '10px',
-                            'cursor': 'pointer',}),
-                ]),
-                html.Div(children=[
-                html.H3(children='Insira o Alcance total', 
-                        style={'margin-bottom': '10px', 
-                            'color': 'white'}),
-                dcc.Input(
                         id='reach-input',
                         type='text', 
                         placeholder='Alcance', 
@@ -185,8 +214,11 @@ app.layout = html.Div(children=[
                             'border': '2px solid #ddd', 
                             'border-radius': '5px',  
                             'padding': '10px',
-                            'cursor': 'pointer',}),
-                ]),
+                            'cursor': 'pointer',
+                            'margin': '0 auto',
+                        }),
+                ], style={'display': 'block', 'margin-bottom': '20px', 'padding': '0 20px', 'text-align': 'center'})
+
             ]),
             html.Div(children=[
                 html.Div(children=[
@@ -250,7 +282,7 @@ app.layout = html.Div(children=[
         'cursor': 'pointer'
         }),
         html.Div(id='feedback-msg', style={'margin-top': 10}),
-    ], style={'display': 'none', 'margin-bottom': '0px'}),
+    ], style={'display': 'none', 'margin-bottom': '0px', 'margin-top': '0px', 'z-index': '50'}),
 
 
     html.H2(children='Dashboard de Anúncios MetaAds', 
@@ -274,14 +306,15 @@ app.layout = html.Div(children=[
     html.Div(children=[
         html.Div(children=[
             html.Div(children=[
-                html.H3(children='Período', style={'margin-bottom': '10px', 'color': 'white'}),
+                html.H3(children='Período', style={'margin-bottom': '10px', 'color': 'white', 'text-font': 'bold', 'text-align': 'center'}),
             ]),
             html.Div(children=[
                 html.Div(children=[
-                    html.H6(children='Data Inicial', style={'margin-bottom': '10px', 'color': 'white'}),
-                    html.H6(id='date-begin-field', 
+                    html.H6(children='Data Inicial', style={'margin-bottom': '5px','margin-right': '10px', 'color': 'white'}),
+                    html.H4(id='date-begin-field', 
                             style={
-                                'margin-bottom': '10px', 
+                                'margin-bottom': '10px',
+                                'margin-right': '10px',
                                 'color': 'white', 
                                 'border': '2px solid #ddd', 
                                 'border-radius': '5px',
@@ -290,10 +323,11 @@ app.layout = html.Div(children=[
                                 }),
                 ]),
                 html.Div(children=[
-                    html.H6(children='Data Final', style={'margin-bottom': '10px', 'color': 'white'}),
-                    html.H6(id='date-end-field', 
+                    html.H6(children='Data Final', style={'margin-bottom': '5px', 'margin-left': '10px', 'color': 'white'}),
+                    html.H4(id='date-end-field', 
                             style={
-                                'margin-bottom': '10px', 
+                                'margin-bottom': '10px',
+                                'margin-left': '10px',
                                 'color': 'white', 
                                 'border': '2px solid #ddd', 
                                 'border-radius': '5px',
@@ -301,7 +335,7 @@ app.layout = html.Div(children=[
                                 'text-align': 'center'
                                 }),
                 ]),
-            ]),
+            ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
         ]),
         html.Div(children=[
             html.H3(children='Investimento', style={'margin-bottom': '10px', 'color': 'white'}),
@@ -471,6 +505,33 @@ app.layout = html.Div(children=[
 ], style={'background-color': '#081425'})
 
 @app.callback(
+    [Output('client-field', 'style'),
+     Output('token-feedback-msg', 'children'),
+     Output('client-dropdown', 'options')],
+    [Input('token-button', 'n_clicks')],
+    [State('token-input', 'value')]
+)
+def show_client_field(n_clicks, token_value):
+    if n_clicks > 0:
+        if token_value is None:
+            return [{'display': 'none'}, html.H4('STATUS: Insira o Token de Autenticação!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), {}]
+        
+        client_list = get_client_list(token_value)
+        
+        if process_error(client_list):
+            return [{'display': 'none'},html.H4('STATUS: Token Inválido!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), {}] 
+        
+        client_list_df = pd.json_normalize(client_list['data'])
+        client_list_df = client_list_df.rename(columns={'id': 'value', 'name': 'label'})
+        client_list_df = client_list_df.astype({'value': str, 'label': str})
+        client_list_df = client_list_df.sort_values(by='label')
+        client_list_options = client_list_df.to_dict('records')
+
+        return [{'display': 'block'},html.H5('STATUS: Token Válido!', style={'text-align': 'center', 'color': 'Green', 'background-color': 'white'}), client_list_options]
+    return [{'display': 'none'}, html.H5('STATUS: Aguardando Envio do Token...', style={'text-align': 'center', 'color': 'white'}), {}]
+
+
+@app.callback(
     [Output('Autentication-fields', 'style'),
      Output('table-field', 'style'),
      Output('presentation-button', 'style')],
@@ -533,7 +594,7 @@ def update_date_picker_style(interval_type):
      Output('funnel-graph', 'figure')],
     [Input('submit-button', 'n_clicks')],
     [State('token-input', 'value'),
-     State('client-input', 'value'),
+     State('client-dropdown', 'value'),
      State('reach-input', 'value'),
      State('interval-type', 'value'),
      State('date-range', 'start_date'),
@@ -547,7 +608,7 @@ def update_graph(n_clicks, token_value, cliente_value, reach_input, interval_typ
             return [], html.Div('Insira o Token!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
                 
         if cliente_value is None:
-            return [], html.Div('Insira o Código do cliente desejado!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
+            return [], html.Div('Selecione o cliente desejado!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
         
         if reach_input is None:
             return [], html.Div('Insira o Alcance total!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
@@ -562,7 +623,14 @@ def update_graph(n_clicks, token_value, cliente_value, reach_input, interval_typ
         spend = f'R$ {spend:.2f}'.replace('.', ',')
 
         date_begin = start_date if interval_type == 'range' else single_date
+        date_begin = date_begin.replace('-', '/')
+        date_begin = date_begin.split('/')
+        date_begin = f'{date_begin[2]}/{date_begin[1]}/{date_begin[0]}'
+
         date_end = end_date if interval_type == 'range' else single_date
+        date_end = date_end.replace('-', '/')
+        date_end = date_end.split('/')
+        date_end = f'{date_end[2]}/{date_end[1]}/{date_end[0]}'
 
         total_msg = get_total_msg(updated_df)
 
