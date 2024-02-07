@@ -5,6 +5,8 @@ from dash import Dash, html, dcc, dash_table, Input, Output, State
 import requests
 
 app = Dash(__name__)
+app.title = 'Zero Um Company - MetaAds Dashboard'
+app._favicon = ("logo.png")
 server = app.server
 
 url_default = 'https://graph.facebook.com/v19.0/'
@@ -13,7 +15,7 @@ insights = '/insights?'
 token = ''
 params = {
     'level': 'adset',
-    'fields': 'campaign_name,adset_name,spend,cpc,ctr,clicks,impressions,reach,actions,frequency',
+    'fields': 'campaign_name,adset_name,adset_id,spend,cpc,ctr,clicks,impressions,reach,actions,frequency',
     'access_token': token
 }
 
@@ -30,6 +32,18 @@ def get_updated_data(token_value, cliente_value, interval_type, start_date, end_
     updated_json_content = updated_response.json()
 
     return updated_json_content
+
+def get_targeting_data(token_value, adset_id):
+    updated_url = url_default + adset_id
+    params_targeting = {
+        'access_token': token_value,
+        'fields': 'name,targeting'
+    }
+
+    updated_response = requests.get(updated_url, params=params_targeting)
+    updated_json_content = updated_response.json()
+    df_targeting = pd.json_normalize(updated_json_content)
+    return df_targeting
 
 def get_client_list(token_value):
     updated_url = url_default + 'me/adaccounts'
@@ -177,13 +191,14 @@ app.layout = html.Div(children=[
                                                                                     'display': 'block',
                                                                                     'cursor': 'pointer'
                                                                                     }),
+                        dcc.Loading(id="loading-token", type="circle", children=[html.Div(id='loading-token-output')]),
                     ], style={'display': 'flex', 'justify-content': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
 
                     html.Div(id='token-feedback-msg', style={'margin-top': 10}),
                 ]),
 
                 html.Div(id='client-field' ,children=[
-                    html.H3(children='Selecione o cliente desejado', style={'margin-bottom': '10px', 'color': 'white', 'text-font': 'bold'}),
+                    html.H3(children='Selecione o cliente desejado', style={'margin-bottom': '10px', 'color': 'white', 'text-font': 'bold', 'text-align': 'center'}),
                     html.Div(children=[
                         dcc.Dropdown(
                             id='client-dropdown',
@@ -192,16 +207,73 @@ app.layout = html.Div(children=[
                             style={
                                 'background-color': '#f0f0f0', 
                                 'color': 'black', 
-                                'border': '2px solid #ddd', 
-                                'border-radius': '5px',  
+                                'border': None,
                                 'padding': '10px',
                                 'cursor': 'pointer',
                                 'width': '330px',
-                                'text-align': 'center'
+                                'height': '50px',
+                                'text-align': 'center',
+                                'margin': 'auto',
+                                'display': 'flex',
+                                'align-items': 'center',
+                                'justify-content': 'space-beetween'
                             }
                         ),
                     ], style={'display': 'flex', 'justify-content': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
                 ], style={'display': 'none'}),
+            ]),
+
+            html.Div(id='date-field',children=[
+                html.Div(children=[
+                    html.Div(children=[
+                        html.H3(children='Selecione o formato de dias desejado', style={'margin-bottom': '10px', 'color': 'white', 'text-font': 'bold', 'text-align': 'center'}),
+                        dcc.RadioItems(
+                            id='interval-type',
+                            options=[
+                                {'label': 'Intervalo de Dias', 'value': 'range'},
+                                {'label': 'Dia Único', 'value': 'single_day'}
+                            ],
+                            value='range',
+                            labelStyle={'display': 'block', 'margin-bottom': '5px'},
+                            style={'color': 'white'}
+                        ),
+                    ]),
+                    html.Div(children=[
+                        html.H3(children='Selecione a data desejada', style={'margin-bottom': '10px', 'color': 'white', 'text-font': 'bold', 'text-align': 'center'}),
+                        dcc.DatePickerRange(
+                            id='date-range',
+                            start_date_placeholder_text='Data Inicial',
+                            end_date_placeholder_text='Data Final',
+                            start_date=None,
+                            end_date=None,
+                            display_format='DD-MM-YYYY',
+                            style={
+                                'background-color': '#f0f0f0', 
+                                'color': 'black', 
+                                'border': '2px solid #ddd', 
+                                'border-radius': '5px',  
+                                'padding': '10px',
+                                'cursor': 'pointer',
+                            }
+                        ),
+                        dcc.DatePickerSingle(
+                            id='date-picker',
+                            placeholder='Data',
+                            date=None,
+                            display_format='DD-MM-YYYY',
+                            style={
+                                'background-color': '#f0f0f0', 
+                                'color': 'black', 
+                                'border': '2px solid #ddd', 
+                                'border-radius': '5px',  
+                                'padding': '10px',
+                                'cursor': 'pointer',
+                                'display': 'none'
+                            }
+                        ),
+                    ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center', 'align-items': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
+                ]),
+
                 html.Div(children=[
                     html.H3('Insira o Alcance total', style={'color': 'white', 'text-align': 'center', 'text-font': 'bold', 'margin-bottom': '10px'}),
                     dcc.Input(
@@ -217,58 +289,8 @@ app.layout = html.Div(children=[
                             'cursor': 'pointer',
                             'margin': '0 auto',
                         }),
-                ], style={'display': 'block', 'margin-bottom': '20px', 'padding': '0 20px', 'text-align': 'center'})
-
-            ]),
-            html.Div(children=[
-                html.Div(children=[
-                    html.H3(children='Selecione o formato de dias desejado', 
-                            style={'margin-bottom': '10px', 
-                                'color': 'white'}),
-                    dcc.RadioItems(
-                        id='interval-type',
-                        options=[
-                            {'label': 'Intervalo de Dias', 'value': 'range'},
-                            {'label': 'Dia Único', 'value': 'single_day'}
-                        ],
-                        value='range',
-                        labelStyle={'display': 'block', 'margin-bottom': '5px'},
-                        style={'color': 'white'}
-                    ),
-                ]),
-                html.Div(children=[
-                html.H3(children='Selecione a data desejada', style={'margin-bottom': '10px', 'color': 'white'}),
-                    dcc.DatePickerRange(
-                        id='date-range',
-                        start_date='2023-03-01',
-                        end_date='2023-03-31',
-                        display_format='DD-MM-YYYY',
-                        style={
-                            'background-color': '#f0f0f0', 
-                            'color': 'black', 
-                            'border': '2px solid #ddd', 
-                            'border-radius': '5px',  
-                            'padding': '10px',
-                            'cursor': 'pointer',
-                            'display': 'none'
-                        }
-                    ),
-                    dcc.DatePickerSingle(
-                        id='date-picker',
-                        date='2023-01-01',
-                        display_format='DD-MM-YYYY',
-                        style={
-                            'background-color': '#f0f0f0', 
-                            'color': 'black', 
-                            'border': '2px solid #ddd', 
-                            'border-radius': '5px',  
-                            'padding': '10px',
-                            'cursor': 'pointer',
-                            'display': 'none'
-                        }
-                    ),
-                ]),
-            ]),
+                ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center', 'align-items': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
+            ], style={'display': 'none'}),
         ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
         
         html.Button('Enviar', id='submit-button', n_clicks=0, style={
@@ -281,8 +303,18 @@ app.layout = html.Div(children=[
         'display': 'block',
         'cursor': 'pointer'
         }),
+        html.Div(children=[
+            dcc.Store(id='data-store', data={}),
+        ], style={'display': 'none'}),
         html.Div(id='feedback-msg', style={'margin-top': 10}),
     ], style={'display': 'none', 'margin-bottom': '0px', 'margin-top': '0px', 'z-index': '50'}),
+    html.Div(children=[
+        dcc.Loading(
+            id="loading-enviar",
+            type="circle",
+            children=[html.Div(id='loading-output')],
+        ),
+    ], style={'text-align': 'center', 'margin-top': '20px', 'z-index': '50'}),
 
 
     html.H2(children='Dashboard de Anúncios MetaAds', 
@@ -290,7 +322,7 @@ app.layout = html.Div(children=[
                    'color': 'white',
                    'background-color': '#143159',
                    'line-height': '100px',
-                   'margin-top': '0px',}),
+                   'margin-top': '90px',}),
     
     html.Button('Modo apresentação', id='presentation-button', n_clicks=0, style={
         'background-color': '#4CAF50',
@@ -303,77 +335,93 @@ app.layout = html.Div(children=[
         'cursor': 'pointer'
         }),
 
-    html.Div(children=[
+    html.Div(id='presentation-fields', children=[
         html.Div(children=[
             html.Div(children=[
-                html.H3(children='Período', style={'margin-bottom': '10px', 'color': 'white', 'text-font': 'bold', 'text-align': 'center'}),
+                html.Div(children=[
+                    html.H3(children='Período', style={'margin-bottom': '10px', 'color': 'white', 'font-weight': 'bold', 'text-align': 'center'}),
+                ]),
+                html.Div(children=[
+                    html.Div(children=[
+                        html.H2(children='Data Inicial', style={'margin-bottom': '5px','margin-right': '10px', 'color': 'white', 'text-align': 'center'}),
+                        html.H2(id='date-begin-field', style={'margin-bottom': '10px', 'margin-right': '10px', 'color': 'white', 'border': '2px solid #ddd', 'border-radius': '5px', 'background-color': '#040911', 'text-align': 'center', 'width': '150px'}),
+                    ]),
+                    html.Div(children=[
+                        html.H2(children='Data Final', style={'margin-bottom': '5px', 'margin-left': '10px', 'color': 'white', 'text-align': 'center'}),
+                        html.H2(id='date-end-field', style={'margin-bottom': '10px', 'margin-left': '10px', 'color': 'white', 'border': '2px solid #ddd', 'border-radius': '5px', 'background-color': '#040911', 'text-align': 'center', 'width': '150px'}),
+                    ]),
+                ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+            ]),
+            dcc.Dropdown(
+                id='campaign-dropdown',
+                options=[{'label': '', 'value': ''}],
+                placeholder='Todas as campanhas',
+                style={
+                    'text-align': 'center',
+                    'background-color': '#f0f0f0', 
+                    'color': 'black', 
+                    'border': '2px solid #ddd', 
+                    'border-radius': '5px',  
+                    'padding': '10px',
+                    'cursor': 'pointer',
+                    'width': '330px',
+                    'height': '60px',
+                    'margin': 'auto',
+                    'display': 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'space-beetween'
+                }
+            ),
+        ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center', 'align-items': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
+
+        html.Div(children=[
+            html.Div(children=[
+                html.H3(children='Investimento', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
+                html.H3(id='spend-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
             ]),
             html.Div(children=[
-                html.Div(children=[
-                    html.H6(children='Data Inicial', style={'margin-bottom': '5px','margin-right': '10px', 'color': 'white'}),
-                    html.H4(id='date-begin-field', 
-                            style={
-                                'margin-bottom': '10px',
-                                'margin-right': '10px',
-                                'color': 'white', 
-                                'border': '2px solid #ddd', 
-                                'border-radius': '5px',
-                                'background-color': '#040911',
-                                'text-align': 'center'
-                                }),
-                ]),
-                html.Div(children=[
-                    html.H6(children='Data Final', style={'margin-bottom': '5px', 'margin-left': '10px', 'color': 'white'}),
-                    html.H4(id='date-end-field', 
-                            style={
-                                'margin-bottom': '10px',
-                                'margin-left': '10px',
-                                'color': 'white', 
-                                'border': '2px solid #ddd', 
-                                'border-radius': '5px',
-                                'background-color': '#040911',
-                                'text-align': 'center'
-                                }),
-                ]),
-            ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
-        ]),
+                html.H3(children='Conversas Iniciadas', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
+                html.H3(id='total-msg-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+            html.Div(children=[
+                html.H3(children='Custo por Conversas Iniciadas', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
+                html.H3(id='cost-per-msg-field', 
+                        style={
+                            'margin-bottom': '10px', 
+                            'color': 'white', 
+                            'border': '2px solid #ddd', 
+                            'border-radius': '5px',
+                            'background-color': '#040911',
+                            'text-align': 'center'
+                            }),
+            ]),
+        ], style={'display': 'block', 'justify-content': 'space-beetween', 'margin-bottom': '20px', 'padding': '0 20px'}),
+
         html.Div(children=[
-            html.H3(children='Investimento', style={'margin-bottom': '10px', 'color': 'white'}),
-            html.H3(id='spend-field', 
-                    style={
-                        'margin-bottom': '10px', 
-                        'color': 'white', 
-                        'border': '2px solid #ddd', 
-                        'border-radius': '5px',
-                        'background-color': '#040911',
-                        'text-align': 'center'
-                        }),
-        ]),
-        html.Div(children=[
-            html.H3(children='Conversas Iniciadas', style={'margin-bottom': '10px', 'color': 'white'}),
-            html.H3(id='total-msg-field', 
-                    style={
-                        'margin-bottom': '10px', 
-                        'color': 'white', 
-                        'border': '2px solid #ddd', 
-                        'border-radius': '5px',
-                        'background-color': '#040911',
-                        'text-align': 'center'
-                        }),
-        ]),
-        html.Div(children=[
-            html.H3(children='Custo por Conversas Iniciadas', style={'margin-bottom': '10px', 'color': 'white'}),
-            html.H3(id='cost-per-msg-field', 
-                    style={
-                        'margin-bottom': '10px', 
-                        'color': 'white', 
-                        'border': '2px solid #ddd', 
-                        'border-radius': '5px',
-                        'background-color': '#040911',
-                        'text-align': 'center'
-                        }),
-        ]),
-    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+            html.Div(id='funnel-graph-field', children=[
+                html.H3(children='Funil de Conversão', style={'margin': '0', 'padding-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
+                dcc.Graph(id='funnel-graph', figure={}),
+            ], style={'display': 'none'}),
+        ], style={'display': 'flex', 'justify-content': 'center', 'margin-bottom': '20px', 'margin-top':'10px', 'padding': '0 20px', 'z-index': '50'})
+
+
+    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'align-items': 'top', 'margin-bottom': '20px', 'padding': '0 20px'}),
 
     html.Div(children=[
         html.Div(children=[
@@ -483,29 +531,35 @@ app.layout = html.Div(children=[
     ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
 
     html.Div(children=[
-        html.Div(id='funnel-graph-field', children=[
-            dcc.Graph(id='funnel-graph', figure={}),
-        ], style={'display': 'none'}),
-    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px', 'z-index': '50'}),
-
-    html.Div(children=[
         html.Div(id='spend-graph-field',children=[
-            html.H3(children='Gráfico de valor usado por campanha', style={'margin-bottom': '10px', 'color': 'white'}),
+            html.H3(children='Valor usado por Conjunto de Anúncio', style={'margin-bottom': '10px', 'color': 'white'}),
             dcc.Graph(id='spend-graph', figure={}),
         ], style={'display': 'none'}),
 
         html.Div(id= 'msg-graph-field',children=[
-            html.H3(children='Gráfico de conversas iniciadas por campanha', style={'margin-bottom': '10px', 'color': 'white'}),
+            html.H3(children='Conversas iniciadas por Conjunto de Anúncio', style={'margin-bottom': '10px', 'color': 'white'}),
             dcc.Graph(id='msg-graph', figure={}),
         ], style={'display': 'none'}),
     ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
+
     html.Div(id='table-field', children=[
         dash_table.DataTable(data=[], page_size=30, id='table', style_table={'overflowX': 'auto', 'margin': 'auto', 'width': '80%'}),
     ], style={'display': 'none'}),
+
 ], style={'background-color': '#081425'})
 
 @app.callback(
-    [Output('client-field', 'style'),
+    [Output('date-field', 'style')],
+    [Input('client-dropdown', 'value')],
+)
+def show_date_field(cliente_value):
+    if cliente_value is not None:
+        return [{'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center', 'align-items': 'top', 'margin-bottom': '20px', 'padding': '0 20px'}]
+    return [{'display': 'none'}]
+
+@app.callback(
+    [Output('loading-token-output', 'children'),
+     Output('client-field', 'style'),
      Output('token-feedback-msg', 'children'),
      Output('client-dropdown', 'options')],
     [Input('token-button', 'n_clicks')],
@@ -514,12 +568,12 @@ app.layout = html.Div(children=[
 def show_client_field(n_clicks, token_value):
     if n_clicks > 0:
         if token_value is None:
-            return [{'display': 'none'}, html.H4('STATUS: Insira o Token de Autenticação!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), {}]
+            return ['', {'display': 'none'}, html.H4('STATUS: Insira o Token de Autenticação!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), {}]
         
         client_list = get_client_list(token_value)
         
         if process_error(client_list):
-            return [{'display': 'none'},html.H4('STATUS: Token Inválido!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), {}] 
+            return ['', {'display': 'none'},html.H4('STATUS: Token Inválido!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), {}] 
         
         client_list_df = pd.json_normalize(client_list['data'])
         client_list_df = client_list_df.rename(columns={'id': 'value', 'name': 'label'})
@@ -527,8 +581,8 @@ def show_client_field(n_clicks, token_value):
         client_list_df = client_list_df.sort_values(by='label')
         client_list_options = client_list_df.to_dict('records')
 
-        return [{'display': 'block'},html.H5('STATUS: Token Válido!', style={'text-align': 'center', 'color': 'Green', 'background-color': 'white'}), client_list_options]
-    return [{'display': 'none'}, html.H5('STATUS: Aguardando Envio do Token...', style={'text-align': 'center', 'color': 'white'}), {}]
+        return ['', {'display': 'block'},html.H5('STATUS: Token Válido!', style={'text-align': 'center', 'color': 'Green', 'background-color': 'white'}), client_list_options]
+    return ['', {'display': 'none'}, html.H5('STATUS: Aguardando Envio do Token...', style={'text-align': 'center', 'color': 'white'}), {}]
 
 
 @app.callback(
@@ -569,10 +623,96 @@ def update_date_picker_style(interval_type):
         return {'display': 'none'}, {'display': 'block'}
     else:
         return {'display': 'none'}, {'display': 'none'}
+    
+@app.callback(
+    [Output('feedback-msg', 'children'),
+     Output('loading-enviar', 'children'),
+     Output('campaign-dropdown', 'options'),
+     Output('campaign-dropdown', 'value'),
+     Output('data-store', 'data')],
+    [Input('submit-button', 'n_clicks')],
+    [State('token-input', 'value'),
+     State('client-dropdown', 'value'),
+     State('reach-input', 'value'),
+     State('interval-type', 'value'),
+     State('date-range', 'start_date'),
+     State('date-range', 'end_date'),
+     State('date-picker', 'date',)]
+)
+def get_data(n_clicks, token_value, cliente_value, reach_input, interval_type, start_date, end_date, single_date):
+    if n_clicks > 0:
+        
+        if token_value is None:
+            return [
+                html.Div('Insira o Token!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}),
+                '',
+                [], 
+                '',
+                {}
+                ]
+        
+        if cliente_value is None:
+            return [
+                html.Div('Selecione o cliente desejado!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}),
+                '',
+                [], 
+                '',
+                {}
+                ]
+        
+        if interval_type == 'range' and (start_date is None or end_date is None):
+            return [
+                html.Div('Selecione as datas!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}),
+                '',
+                [], 
+                '',
+                {}
+                ]
+        
+        elif interval_type == 'single_day' and single_date is None:
+            return [
+                html.Div('Selecione a data!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}),
+                '',
+                [], 
+                '',
+                {}
+                ]
+        
+        if reach_input is None:
+            return [
+                html.Div('Insira o Alcance total!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}),
+                '',
+                [], 
+                '',
+                {}
+                ]
+
+        updated_json_content = get_updated_data(token_value, cliente_value, interval_type, start_date, end_date, single_date)
+
+        if process_error(updated_json_content) or process_empty_data(updated_json_content):
+            return [update_feedback_message(updated_json_content), '', [], '', {}]
+        
+        updated_df = process_data(updated_json_content)
+        updated_df['age_min'] = None
+        updated_df['age_max'] = None
+        updated_df['gender'] = None
+        
+        for index, row in updated_df.iterrows():
+            adset_id = row['adset_id']
+            ad_set_targeting = get_targeting_data(token_value, adset_id)
+            if not ad_set_targeting.empty:
+                updated_df.at[index, 'age_min'] = ad_set_targeting['targeting.age_min'].values[0]
+                updated_df.at[index, 'age_max'] = ad_set_targeting['targeting.age_max'].values[0]
+            
+        campaign_options = [{'label':'Todas as campanhas', 'value':''}]
+        all_campaign_options = campaign_options + [{'label': i, 'value': i} for i in updated_df['campaign_name'].unique()]
+        
+        return [update_feedback_message(updated_json_content), '', all_campaign_options, campaign_options[0]['value'], updated_df.to_dict('records')]
+    
+    return [html.Div('STATUS: Aguardando Envio...', style={'text-align': 'center', 'color': 'white'}), '', [], '', {}]
 
 @app.callback(
     [Output('table', 'data'),
-     Output('feedback-msg', 'children'),
      Output('spend-field', 'children'),
      Output('date-begin-field', 'children'),
      Output('date-end-field', 'children'),
@@ -592,33 +732,20 @@ def update_date_picker_style(interval_type):
      Output('msg-graph', 'figure'),
      Output('funnel-graph-field', 'style'),
      Output('funnel-graph', 'figure')],
-    [Input('submit-button', 'n_clicks')],
-    [State('token-input', 'value'),
-     State('client-dropdown', 'value'),
-     State('reach-input', 'value'),
+    [Input('campaign-dropdown', 'value')],
+    [State('reach-input', 'value'),
      State('interval-type', 'value'),
      State('date-range', 'start_date'),
      State('date-range', 'end_date'),
-     State('date-picker', 'date')]
+     State('date-picker', 'date'),
+     State('data-store', 'data')]
 )
-def update_graph(n_clicks, token_value, cliente_value, reach_input, interval_type, start_date, end_date, single_date):
-    if n_clicks > 0:
-        
-        if token_value is None:
-            return [], html.Div('Insira o Token!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
-                
-        if cliente_value is None:
-            return [], html.Div('Selecione o cliente desejado!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
-        
-        if reach_input is None:
-            return [], html.Div('Insira o Alcance total!', style={'text-align': 'center', 'color': 'red', 'background-color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
+def update_graph(campaign_value, reach_input, interval_type, start_date, end_date, single_date, df):
+    if df != {}:
+        updated_df = pd.DataFrame(df)
+        if campaign_value != '':
+            updated_df = updated_df[updated_df['campaign_name'] == campaign_value]
 
-        updated_json_content = get_updated_data(token_value, cliente_value, interval_type, start_date, end_date, single_date)
-
-        if process_error(updated_json_content) or process_empty_data(updated_json_content):
-            return [], update_feedback_message(updated_json_content), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
-        
-        updated_df = process_data(updated_json_content)
         spend = get_total_investment(updated_df)
         spend = f'R$ {spend:.2f}'.replace('.', ',')
 
@@ -637,11 +764,14 @@ def update_graph(n_clicks, token_value, cliente_value, reach_input, interval_typ
         cost_per_msg = get_cost_per_msg(updated_df)
         cost_per_msg = f'R$ {cost_per_msg:.2f}'.replace('.', ',')
 
-        reach = reach_input
+        if campaign_value == '':
+            reach = reach_input
+        else:
+            reach = updated_df['reach'].astype(int).sum()
 
         impressions = get_impressions(updated_df)
 
-        frequency = get_frequency(updated_df, reach_input)
+        frequency = get_frequency(updated_df, reach)
         frequency = f'{frequency:.2f}'.replace('.', ',')
 
         ctr = get_ctr(updated_df)
@@ -658,26 +788,27 @@ def update_graph(n_clicks, token_value, cliente_value, reach_input, interval_typ
         cost_engagement = f'R$ {cost_engagement:.2f}'.replace('.', ',')
 
         updated_df = updated_df.astype({'spend': float, 'messaging_conversation_started_7d': int})
+        updated_df = updated_df.sort_values(by='adset_name', ascending=False)
 
         spend_graph = px.pie(updated_df, 
-                             values='spend', 
-                             names='adset_name',
-                             labels={'spend': 'Valor Gasto (R$)', 'adset_name': 'Conjunto de Anúncios'}
-                             )
+                                values='spend', 
+                                names='adset_name',
+                                labels={'spend': 'Valor Gasto (R$)', 'adset_name': 'Conjunto de Anúncios'}
+                                )
         
         spend_graph.update_traces(textinfo='percent+value')
         spend_graph.update_layout(paper_bgcolor='#143159', 
-                                  font_color='white', 
-                                  height=600, 
-                                  width=600, 
-                                  legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
-                                  )
+                                    font_color='white', 
+                                    height=600, 
+                                    width=600, 
+                                    legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+                                    )
 
         msg_graph = px.pie(updated_df, 
-                           values='messaging_conversation_started_7d', 
-                           names='adset_name', 
-                           labels={'messaging_conversation_started_7d': 'Conversas Iniciadas', 'adset_name': 'Conjunto de Anúncios'}
-                           )
+                            values='messaging_conversation_started_7d', 
+                            names='adset_name', 
+                            labels={'messaging_conversation_started_7d': 'Conversas Iniciadas', 'adset_name': 'Conjunto de Anúncios'}
+                            )
         
         msg_graph.update_traces(textinfo='percent+value')
         msg_graph.update_layout(paper_bgcolor='#143159', 
@@ -687,31 +818,75 @@ def update_graph(n_clicks, token_value, cliente_value, reach_input, interval_typ
                                 legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
                                 )
         
+        common_colors = dict(zip(updated_df['adset_name'], px.colors.qualitative.Plotly))
+
+        spend_graph.update_traces(marker=dict(colors=updated_df['adset_name'].map(common_colors)))
+        msg_graph.update_traces(marker=dict(colors=updated_df['adset_name'].map(common_colors)))
+
+
         spend_funnel = get_total_investment(updated_df)
         cost_msg_funnel = round(spend_funnel/total_msg, 2)
 
         funnel_data = dict(
             value = [spend_funnel, total_msg, cost_msg_funnel],
-            labels = ['Investimento (R$)', 'Conversas Iniciadas', 'Custo por Conversa Iniciada (R$)']
+            labels = ['Investimento (R$)', 'Conversas Iniciadas', 'CPC (R$)']
         )
 
         funnel_graph = px.funnel(funnel_data,
-                                      y='labels',
-                                      x='value',
-                                      )
+                                        y='labels',
+                                        x='value',
+                                        )
         funnel_graph.update_traces(textinfo='value+label', textfont=dict(color='white'))
-        funnel_graph.update_layout(paper_bgcolor='#143159',
-                                   plot_bgcolor='#143159',
-                                   font_color='white',
-                                   height=600, 
-                                   width=1200,
-                                   showlegend=False,
-                                   yaxis=dict(showgrid=False, visible=False),
-                                   )
+        funnel_graph.update_layout(margin=dict(l=0, r=0, t=0, b=0),
+                                    plot_bgcolor='#081425',
+                                    font_color='white',
+                                    height=300,
+                                    width=400,
+                                    showlegend=False,
+                                    yaxis=dict(showgrid=False, visible=False),
+                                    )
+        
 
-        return updated_df.to_dict('records'), update_feedback_message(updated_json_content), spend, date_begin, date_end, total_msg, cost_per_msg, reach, impressions, frequency, ctr, clicks_link, cost_click, engagement, cost_engagement, {'display': 'block'}, spend_graph, {'display': 'block'}, msg_graph, {'display': 'flex'}, funnel_graph
-
-    return [], html.H3('STATUS: Aguardando Envio...', style={'text-align': 'center', 'color': 'white'}), '', '', '', '', '', '', '', '', '', '', '', '', '', {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}
+        return [updated_df.to_dict('records'),
+                spend,
+                date_begin, 
+                date_end, 
+                total_msg, 
+                cost_per_msg, 
+                reach, 
+                impressions, 
+                frequency, 
+                ctr, 
+                clicks_link, 
+                cost_click, 
+                engagement, 
+                cost_engagement, 
+                {'display': 'block', 'margin-bottom': '100px'}, 
+                spend_graph, 
+                {'display': 'block', 'margin-bottom': '100px'}, 
+                msg_graph, 
+                {'display': 'flex', 'flex-direction': 'column', 'align-items': 'center'}, 
+                funnel_graph]
+    return [[],
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            {'display': 'none'},
+            {},
+            {'display': 'none'},
+            {},
+            {'display': 'none'},
+            {}]
 
 
 if __name__ == '__main__':
