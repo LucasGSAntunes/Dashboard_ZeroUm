@@ -367,6 +367,7 @@ app.layout = html.Div(children=[
                     {'label': 'Custo por Conversas Iniciadas', 'value': 'cost_per_msg'},
                     {'label': 'Funil de Conversão', 'value': 'funnel'},
                     {'label': 'Selecionar Campanhas', 'value': 'campaigns'},
+                    {'label': 'Campanhas', 'value': 'campaigns_names'},
                 ],
                 value=['spend', 'total_msg', 'cost_per_msg', 'funnel'],
                 style={'display': 'flex', 'justify-content': 'space-evenly', 'color': 'white', 'align-items': 'center', 'margin-bottom': '20px', 'padding': '0 20px'},
@@ -601,14 +602,16 @@ app.layout = html.Div(children=[
         ]),
     ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
 
+    html.Hr(style={'page-break-after': 'always', 'margin-bottom': '100px'}),
+
     html.Div(children=[
         html.Div(id='spend-graph-field',children=[
-            html.H3(children='Valor usado por Conjunto de Anúncio', style={'margin-bottom': '10px', 'color': 'white'}),
+            html.H3(children='Valor usado por Conjunto de Anúncio', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
             dcc.Graph(id='spend-graph', figure={}),
         ], style={'display': 'none'}),
 
         html.Div(id= 'msg-graph-field',children=[
-            html.H3(children='Conversas iniciadas por Conjunto de Anúncio', style={'margin-bottom': '10px', 'color': 'white'}),
+            html.H3(children='Conversas iniciadas por Conjunto de Anúncio', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
             dcc.Graph(id='msg-graph', figure={}),
         ], style={'display': 'none'}),
     ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
@@ -617,14 +620,18 @@ app.layout = html.Div(children=[
         dash_table.DataTable(data=[], page_size=30, id='table', style_table={'overflowX': 'auto', 'margin': 'auto', 'width': '80%'}),
     ], style={'display': 'none'}),
 
+
 ], style={'background-color': '#081425'})
+
+
 
 @app.callback(
     [Output('spend-show', 'style'),
      Output('msg-show', 'style'),
      Output('cost-msg-show', 'style'),
      Output('funnel-show', 'style'),
-     Output('campaigns-show', 'style')],
+     Output('campaigns-show', 'style'),
+     Output('campaigns-names-show', 'style')],
     [Input('main-metrics-checklist', 'value')]
 )
 def show_main_metrics(metrics_value):
@@ -632,7 +639,8 @@ def show_main_metrics(metrics_value):
             {'display': 'block'} if 'total_msg' in metrics_value else {'display': 'none'},
             {'display': 'block'} if 'cost_per_msg' in metrics_value else {'display': 'none'},
             {'display': 'block'} if 'funnel' in metrics_value else {'display': 'none'},
-            {'display': 'block'} if 'campaigns' in metrics_value else {'display': 'none'}]
+            {'display': 'block'} if 'campaigns' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'campaigns_names' in metrics_value else {'display': 'none'}]
 
 @app.callback(
     [Output('reach-show', 'style'),
@@ -708,7 +716,7 @@ def show_auth_fields(n_clicks):
                 {'margin-top': '20px','margin-bottom': '20px', 'padding': '0 20px', 'border': '2px solid #ddd', 'border-radius': '5px', 'background-color': '#040911'},
                 {'background-color': '#4CAF50', 'color': 'white', 'padding': '10px 20px', 'border': 'none', 'border-radius': '4px', 'margin': 'auto', 'display': 'block', 'cursor': 'pointer'}]
     
-    return [{'display': 'none'}, 
+    return [{'display': 'none'},
             {'display': 'none'}, 
             {'display': 'none'},
             {'display': 'none'},
@@ -907,9 +915,9 @@ def update_graph(campaign_value, reach_input, interval_type, start_date, end_dat
         spend_graph.update_traces(textinfo='percent+value')
         spend_graph.update_layout(paper_bgcolor='#143159', 
                                     font_color='white', 
-                                    height=600, 
-                                    width=600, 
-                                    legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+                                    height=500, 
+                                    width=500, 
+                                    legend=dict(orientation="h", yanchor="bottom", y=-0.5, xanchor="center", x=0.5)
                                     )
 
         msg_graph = px.pie(updated_df, 
@@ -921,9 +929,9 @@ def update_graph(campaign_value, reach_input, interval_type, start_date, end_dat
         msg_graph.update_traces(textinfo='percent+value')
         msg_graph.update_layout(paper_bgcolor='#143159', 
                                 font_color='white', 
-                                height=600, 
-                                width=600, 
-                                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+                                height=500, 
+                                width=500, 
+                                legend=dict(orientation="h", yanchor="bottom", y=-0.5, xanchor="center", x=0.5)
                                 )
         
         common_colors = dict(zip(updated_df['adset_name'], px.colors.qualitative.Plotly))
@@ -970,9 +978,9 @@ def update_graph(campaign_value, reach_input, interval_type, start_date, end_dat
                 cost_click, 
                 engagement, 
                 cost_engagement, 
-                {'display': 'block', 'margin-bottom': '100px'}, 
+                {'display': 'block', 'margin-bottom': '100px', 'margin-top': '100px'}, 
                 spend_graph, 
-                {'display': 'block', 'margin-bottom': '100px'}, 
+                {'display': 'block', 'margin-bottom': '100px', 'margin-top': '100px'}, 
                 msg_graph, 
                 {'display': 'flex', 'flex-direction': 'column', 'align-items': 'center'}, 
                 funnel_graph]
