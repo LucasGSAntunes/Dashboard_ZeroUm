@@ -19,6 +19,17 @@ params = {
     'access_token': token
 }
 
+def generate_campaign_elements(df):
+    campaign_elements = []
+    
+    grouped_df = df.groupby('campaign_name')
+    
+    for campaign_name, group_df in grouped_df:
+        campaign_elements.append(html.H3(f'CAMPANHA {campaign_name}', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}))
+        for adset_name in group_df['adset_name'].unique():
+            campaign_elements.append(html.H5(adset_name, style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}))
+    return campaign_elements
+
 def get_updated_data(token_value, cliente_value, interval_type, start_date, end_date, single_date):
     updated_url = url_default + cliente_value + insights
     params['access_token'] = token_value
@@ -160,11 +171,13 @@ app.layout = html.Div(children=[
         html.H2(children='Informações de Autenticação', 
                 style={'text-align': 'center', 
                     'color': 'white',
-                    'background-color': '#143159',
+                    'background-color': '#040911',
                     'line-height': '100px',
                     'margin-top': '100px',
                     'align-items': 'center',
-                    'text-font': 'bold'}),
+                    'text-font': 'bold',
+                    'border': '2px solid #ddd',
+                    'border-radius': '5px'}),
         html.Div(children=[
             html.Div(children=[
                 html.Div(children=[
@@ -301,13 +314,17 @@ app.layout = html.Div(children=[
         'border-radius': '4px',
         'margin': 'auto',
         'display': 'block',
-        'cursor': 'pointer'
+        'cursor': 'pointer',
         }),
+
         html.Div(children=[
             dcc.Store(id='data-store', data={}),
         ], style={'display': 'none'}),
+
         html.Div(id='feedback-msg', style={'margin-top': 10}),
+
     ], style={'display': 'none', 'margin-bottom': '0px', 'margin-top': '0px', 'z-index': '50'}),
+
     html.Div(children=[
         dcc.Loading(
             id="loading-enviar",
@@ -320,9 +337,13 @@ app.layout = html.Div(children=[
     html.H2(children='Dashboard de Anúncios MetaAds', 
             style={'text-align': 'center', 
                    'color': 'white',
-                   'background-color': '#143159',
+                   'background-color': '#040911',
                    'line-height': '100px',
-                   'margin-top': '90px',}),
+                   'margin-top': '100px',
+                   'align-items': 'center',
+                   'text-font': 'bold',
+                   'border': '2px solid #ddd',
+                   'border-radius': '5px'}),
     
     html.Button('Modo apresentação', id='presentation-button', n_clicks=0, style={
         'background-color': '#4CAF50',
@@ -330,16 +351,35 @@ app.layout = html.Div(children=[
         'padding': '10px 20px',
         'border': 'none',
         'border-radius': '4px',
-        'margin': 'auto',
+        'margin': '10px auto 20px',
         'display': 'block',
         'cursor': 'pointer'
         }),
+
+    html.Div(id='presentation-fields-setup', children=[
+        html.H3(children='Selecione as métricas principais desejadas', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
+        html.Div(children=[
+            dcc.Checklist(
+                id='main-metrics-checklist',
+                options=[
+                    {'label': 'Investimento', 'value': 'spend'},
+                    {'label': 'Conversas Iniciadas', 'value': 'total_msg'},
+                    {'label': 'Custo por Conversas Iniciadas', 'value': 'cost_per_msg'},
+                    {'label': 'Funil de Conversão', 'value': 'funnel'},
+                    {'label': 'Selecionar Campanhas', 'value': 'campaigns'},
+                ],
+                value=['spend', 'total_msg', 'cost_per_msg', 'funnel'],
+                style={'display': 'flex', 'justify-content': 'space-evenly', 'color': 'white', 'align-items': 'center', 'margin-bottom': '20px', 'padding': '0 20px'},
+                inputStyle={'margin-right': '5px', 'margin-left': '30px'}
+            ),
+        ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0px 20px 10px 20px'}),
+    ]),
 
     html.Div(id='presentation-fields', children=[
         html.Div(children=[
             html.Div(children=[
                 html.Div(children=[
-                    html.H3(children='Período', style={'margin-bottom': '10px', 'color': 'white', 'font-weight': 'bold', 'text-align': 'center'}),
+                    html.H2(children='Período', style={'margin-bottom': '10px', 'color': 'white', 'font-weight': 'bold', 'text-align': 'center'}),
                 ]),
                 html.Div(children=[
                     html.Div(children=[
@@ -352,30 +392,39 @@ app.layout = html.Div(children=[
                     ]),
                 ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0 20px'}),
             ]),
-            dcc.Dropdown(
-                id='campaign-dropdown',
-                options=[{'label': '', 'value': ''}],
-                placeholder='Todas as campanhas',
-                style={
-                    'text-align': 'center',
-                    'background-color': '#f0f0f0', 
-                    'color': 'black', 
-                    'border': '2px solid #ddd', 
-                    'border-radius': '5px',  
-                    'padding': '10px',
-                    'cursor': 'pointer',
-                    'width': '330px',
-                    'height': '60px',
-                    'margin': 'auto',
-                    'display': 'flex',
-                    'align-items': 'center',
-                    'justify-content': 'space-beetween'
-                }
-            ),
+
+            html.Div(id='campaigns-names-show', children=[
+                html.Div(id='campaigns-names')
+            ]),
+
         ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center', 'align-items': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
 
         html.Div(children=[
-            html.Div(children=[
+            html.Div(id='campaigns-show', children=[
+                html.H3(children='Selecione as campanhas desejadas', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
+                dcc.Dropdown(
+                    id='campaign-dropdown',
+                    options=[{'label': '', 'value': ''}],
+                    placeholder='Todas as campanhas',
+                    style={
+                        'text-align': 'center',
+                        'background-color': '#f0f0f0', 
+                        'color': 'black', 
+                        'border': '2px solid #ddd', 
+                        'border-radius': '5px',  
+                        'padding': '10px',
+                        'cursor': 'pointer',
+                        'width': '330px',
+                        'height': '60px',
+                        'margin': 'auto',
+                        'display': 'flex',
+                        'align-items': 'center',
+                        'justify-content': 'space-beetween'
+                    }
+                ),
+            ]),
+
+            html.Div(id='spend-show', children=[
                 html.H3(children='Investimento', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
                 html.H3(id='spend-field', 
                         style={
@@ -387,7 +436,7 @@ app.layout = html.Div(children=[
                             'text-align': 'center'
                             }),
             ]),
-            html.Div(children=[
+            html.Div(id='msg-show', children=[
                 html.H3(children='Conversas Iniciadas', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
                 html.H3(id='total-msg-field', 
                         style={
@@ -399,7 +448,7 @@ app.layout = html.Div(children=[
                             'text-align': 'center'
                             }),
             ]),
-            html.Div(children=[
+            html.Div(id='cost-msg-show', children=[
                 html.H3(children='Custo por Conversas Iniciadas', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
                 html.H3(id='cost-per-msg-field', 
                         style={
@@ -413,19 +462,41 @@ app.layout = html.Div(children=[
             ]),
         ], style={'display': 'block', 'justify-content': 'space-beetween', 'margin-bottom': '20px', 'padding': '0 20px'}),
 
+        html.Div(id='funnel-show', children=[
+            html.Div(children=[
+                html.Div(id='funnel-graph-field', children=[
+                    html.H3(children='Funil de Conversão', style={'margin': '0', 'padding-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
+                    dcc.Graph(id='funnel-graph', figure={}),
+                ], style={'display': 'none'}),
+            ], style={'display': 'flex', 'justify-content': 'center', 'margin-bottom': '20px', 'margin-top':'10px', 'padding': '0 20px', 'z-index': '50'})
+        ]),
+    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'align-items': 'center', 'margin-bottom': '20px', 'padding': '0 20px'}),
+    
+    html.Div(id='metrics-fields-setup', children=[
+        html.H3(children='Selecione as métricas secundárias desejadas', style={'margin-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
         html.Div(children=[
-            html.Div(id='funnel-graph-field', children=[
-                html.H3(children='Funil de Conversão', style={'margin': '0', 'padding-bottom': '10px', 'color': 'white', 'text-align': 'center'}),
-                dcc.Graph(id='funnel-graph', figure={}),
-            ], style={'display': 'none'}),
-        ], style={'display': 'flex', 'justify-content': 'center', 'margin-bottom': '20px', 'margin-top':'10px', 'padding': '0 20px', 'z-index': '50'})
-
-
-    ], style={'display': 'flex', 'justify-content': 'space-evenly', 'align-items': 'top', 'margin-bottom': '20px', 'padding': '0 20px'}),
+            dcc.Checklist(
+                id='secundary-metrics-checklist',
+                options=[
+                    {'label': 'Alcance', 'value': 'reach'},
+                    {'label': 'Impressões', 'value': 'impressions'},
+                    {'label': 'Frequência', 'value': 'frequency'},
+                    {'label': 'CTR', 'value': 'CTR'},
+                    {'label': 'Cliques no Link', 'value': 'clicks_link'},
+                    {'label': 'Custo por Clique', 'value': 'cost_click'},
+                    {'label': 'Engajamento', 'value': 'engagement'},
+                    {'label': 'Custo por Engajamento', 'value': 'cost_engagement'},
+                ],
+                value=['reach', 'impressions', 'frequency', 'CTR', 'clicks_link', 'cost_click', 'engagement', 'cost_engagement'],
+                style={'display': 'flex', 'justify-content': 'space-evenly', 'color': 'white', 'align-items': 'center', 'margin-bottom': '20px', 'padding': '0 20px'},
+                inputStyle={'margin-right': '5px', 'margin-left': '30px'}
+            ),
+        ], style={'display': 'flex', 'justify-content': 'space-evenly', 'margin-bottom': '20px', 'padding': '0px 20px 10px 20px'}),
+    ]),
 
     html.Div(children=[
         html.Div(children=[
-            html.Div(children=[
+            html.Div(id='reach-show', children=[
                 html.H3(children='Alcance', style={'margin-bottom': '10px', 'color': 'white'}),
                 html.H3(id='reach-field', 
                         style={
@@ -437,7 +508,7 @@ app.layout = html.Div(children=[
                             'text-align': 'center'
                             }),
             ]),
-            html.Div(children=[
+            html.Div(id='impressions-show', children=[
                 html.H3(children='Impressões', style={'margin-bottom': '10px', 'color': 'white'}),
                 html.H3(id='impressions-field', 
                         style={
@@ -450,7 +521,7 @@ app.layout = html.Div(children=[
                             }),
             ]),
         ]),
-        html.Div(children=[
+        html.Div(id='frequency-show', children=[
             html.Div(children=[
                 html.H3(children='Frequência', style={'margin-bottom': '10px', 'color': 'white'}),
                 html.H3(id='frequency-field', 
@@ -463,7 +534,7 @@ app.layout = html.Div(children=[
                             'text-align': 'center'
                             }),
             ]),
-            html.Div(children=[
+            html.Div(id='ctr-show', children=[
                 html.H3(children='CTR', style={'margin-bottom': '10px', 'color': 'white'}),
                 html.H3(id='CTR-field', 
                         style={
@@ -476,7 +547,7 @@ app.layout = html.Div(children=[
                             }),
             ]),
         ]),
-        html.Div(children=[
+        html.Div(id='link-clicks-show', children=[
             html.Div(children=[
                 html.H3(children='Cliques no Link', style={'margin-bottom': '10px', 'color': 'white'}),
                 html.H3(id='clicks-link-field', 
@@ -489,7 +560,7 @@ app.layout = html.Div(children=[
                             'text-align': 'center'
                             }),
             ]),
-            html.Div(children=[
+            html.Div(id='cpc-show', children=[
                 html.H3(children='Custo por Clique', style={'margin-bottom': '10px', 'color': 'white'}),
                 html.H3(id='cost-click-field', 
                         style={
@@ -503,7 +574,7 @@ app.layout = html.Div(children=[
             ]),
         ]),
         html.Div(children=[
-            html.Div(children=[
+            html.Div(id='engegament-show', children=[
                 html.H3(children='Engajamento', style={'margin-bottom': '10px', 'color': 'white'}),
                 html.H3(id='engagement-field', 
                         style={
@@ -515,7 +586,7 @@ app.layout = html.Div(children=[
                             'text-align': 'center'
                             }),
             ]),
-            html.Div(children=[
+            html.Div(id='cost-engagement-show', children=[
                 html.H3(children='Custo por Engajamento', style={'margin-bottom': '10px', 'color': 'white'}),
                 html.H3(id='cost-engagement-field', 
                         style={
@@ -547,6 +618,42 @@ app.layout = html.Div(children=[
     ], style={'display': 'none'}),
 
 ], style={'background-color': '#081425'})
+
+@app.callback(
+    [Output('spend-show', 'style'),
+     Output('msg-show', 'style'),
+     Output('cost-msg-show', 'style'),
+     Output('funnel-show', 'style'),
+     Output('campaigns-show', 'style')],
+    [Input('main-metrics-checklist', 'value')]
+)
+def show_main_metrics(metrics_value):
+    return [{'display': 'block'} if 'spend' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'total_msg' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'cost_per_msg' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'funnel' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'campaigns' in metrics_value else {'display': 'none'}]
+
+@app.callback(
+    [Output('reach-show', 'style'),
+     Output('impressions-show', 'style'),
+     Output('frequency-show', 'style'),
+     Output('ctr-show', 'style'),
+     Output('link-clicks-show', 'style'),
+     Output('cpc-show', 'style'),
+     Output('engegament-show', 'style'),
+     Output('cost-engagement-show', 'style')],
+    [Input('secundary-metrics-checklist', 'value')]
+)
+def show_secundary_metrics(metrics_value):
+    return [{'display': 'block'} if 'reach' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'impressions' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'frequency' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'CTR' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'clicks_link' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'cost_click' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'engagement' in metrics_value else {'display': 'none'},
+            {'display': 'block'} if 'cost_engagement' in metrics_value else {'display': 'none'}]
 
 @app.callback(
     [Output('date-field', 'style')],
@@ -588,28 +695,24 @@ def show_client_field(n_clicks, token_value):
 @app.callback(
     [Output('Autentication-fields', 'style'),
      Output('table-field', 'style'),
+     Output('metrics-fields-setup', 'style'),
+     Output('presentation-fields-setup', 'style'),
      Output('presentation-button', 'style')],
     [Input('presentation-button', 'n_clicks')]
 )
 def show_auth_fields(n_clicks):
     if n_clicks%2 == 0:
-        return {'display': 'block'}, {'display': 'block'}, {'background-color': '#4CAF50', 
-                                                            'color': 'white', 
-                                                            'padding': '10px 20px', 
-                                                            'border': 'none', 
-                                                            'border-radius': '4px', 
-                                                            'margin': 'auto', 
-                                                            'display': 'block', 
-                                                            'cursor': 'pointer'}
+        return [{'display': 'block'}, 
+                {'display': 'block'},
+                {'margin-bottom': '20px', 'padding': '0 20px', 'border': '2px solid #ddd', 'border-radius': '5px', 'background-color': '#040911'},
+                {'margin-top': '20px','margin-bottom': '20px', 'padding': '0 20px', 'border': '2px solid #ddd', 'border-radius': '5px', 'background-color': '#040911'},
+                {'background-color': '#4CAF50', 'color': 'white', 'padding': '10px 20px', 'border': 'none', 'border-radius': '4px', 'margin': 'auto', 'display': 'block', 'cursor': 'pointer'}]
     
-    return {'display': 'none'}, {'display': 'none'}, {'background-color': '#081425',
-                                                        'color': 'white',
-                                                        'padding': '10px 20px',
-                                                        'border': '2px solid #000000',
-                                                        'border-radius': '4px',
-                                                        'margin': 'auto',
-                                                        'display': 'block',
-                                                        'cursor': 'pointer'}
+    return [{'display': 'none'}, 
+            {'display': 'none'}, 
+            {'display': 'none'},
+            {'display': 'none'},
+            {'background-color': '#081425', 'color': 'white', 'padding': '10px 20px', 'border': '2px solid #000000', 'border-radius': '4px', 'margin': 'auto', 'display': 'block', 'cursor': 'pointer'}]
 
 @app.callback(
     [Output('date-range', 'style'),
@@ -712,7 +815,8 @@ def get_data(n_clicks, token_value, cliente_value, reach_input, interval_type, s
     return [html.Div('STATUS: Aguardando Envio...', style={'text-align': 'center', 'color': 'white'}), '', [], '', {}]
 
 @app.callback(
-    [Output('table', 'data'),
+    [Output('campaigns-names', 'children'),
+     Output('table', 'data'),
      Output('spend-field', 'children'),
      Output('date-begin-field', 'children'),
      Output('date-end-field', 'children'),
@@ -745,6 +849,10 @@ def update_graph(campaign_value, reach_input, interval_type, start_date, end_dat
         updated_df = pd.DataFrame(df)
         if campaign_value != '':
             updated_df = updated_df[updated_df['campaign_name'] == campaign_value]
+
+        updated_df = updated_df.sort_values(by='adset_name', ascending=True)
+
+        campaign_elements = generate_campaign_elements(updated_df)
 
         spend = get_total_investment(updated_df)
         spend = f'R$ {spend:.2f}'.replace('.', ',')
@@ -847,7 +955,8 @@ def update_graph(campaign_value, reach_input, interval_type, start_date, end_dat
                                     )
         
 
-        return [updated_df.to_dict('records'),
+        return [campaign_elements,
+                updated_df.to_dict('records'),
                 spend,
                 date_begin, 
                 date_end, 
@@ -867,7 +976,8 @@ def update_graph(campaign_value, reach_input, interval_type, start_date, end_dat
                 msg_graph, 
                 {'display': 'flex', 'flex-direction': 'column', 'align-items': 'center'}, 
                 funnel_graph]
-    return [[],
+    return ['',
+            [],
             '',
             '',
             '',
